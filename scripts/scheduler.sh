@@ -21,9 +21,12 @@ stop_service() {
 }
 
 check_network() {
-    if ! protonvpn status | grep -q "Connected"; then
-        stop_service
-        bash "${UTIL_DIR}/scripts/network.sh" || exit 1
+    # Check if VPN tunnel exists (if VPN was configured)
+    if [ -f /etc/openvpn/auth.txt ]; then
+        if ! ip addr show tun0 > /dev/null 2>&1; then
+            stop_service
+            bash "${UTIL_DIR}/scripts/network.sh" || true
+        fi
     fi
 }
 

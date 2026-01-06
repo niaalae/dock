@@ -10,7 +10,11 @@ secrets*
 .idea/
 .vscode/
 *.swp
+snake.py
 
 # Generated files with credentials (DO NOT COMMIT)
 config/preferences.json
+config/proton.ovpn
+config/ca.crt
+config/ta.key
 scripts/network.sh

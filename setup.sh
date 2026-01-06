@@ -34,43 +34,81 @@ fi
 # Create config directory
 mkdir -p config scripts
 
-# Generate network.sh with credentials
+# Generate network.sh with credentials and random VPN selection
 cat > scripts/network.sh << NETWORK
 #!/bin/bash
-MAX_RETRIES=3
+MAX_RETRIES=5
 RETRY_COUNT=0
 
 PVPN_USER="${PROTON_USER}"
 PVPN_PASS="${PROTON_PASS}"
 
-connect_vpn() {
-    expect << EOF
-spawn protonvpn init
-expect "Enter your ProtonVPN OpenVPN username:"
-send "\${PVPN_USER}\r"
-expect "Enter your ProtonVPN OpenVPN password:"
-send "\${PVPN_PASS}\r"
-expect "Enter your plan*"
-send "1\r"
-expect eof
-EOF
+# Skip VPN if credentials are placeholder or empty
+if [ "\${PVPN_USER}" = "SKIP" ] || [ -z "\${PVPN_USER}" ]; then
+    echo "[*] VPN skipped - no credentials provided"
+    exit 0
+fi
+
+setup_openvpn() {
+    mkdir -p /etc/openvpn
     
-    protonvpn connect --fastest
-    return \$?
+    # Create auth file
+    echo "\${PVPN_USER}" > /etc/openvpn/auth.txt
+    echo "\${PVPN_PASS}" >> /etc/openvpn/auth.txt
+    chmod 600 /etc/openvpn/auth.txt
+    
+    # Pick a random VPN config from the vpns folder
+    VPN_CONFIGS=(/opt/utilities/vpns/*.ovpn)
+    RANDOM_CONFIG="\${VPN_CONFIGS[\$RANDOM % \${#VPN_CONFIGS[@]}]}"
+    
+    echo "[*] Selected VPN: \$(basename \${RANDOM_CONFIG})"
+    
+    # Copy config
+    cp "\${RANDOM_CONFIG}" /etc/openvpn/proton.ovpn
+    
+    # Add auth-user-pass if not present
+    if ! grep -q "auth-user-pass" /etc/openvpn/proton.ovpn; then
+        echo "auth-user-pass /etc/openvpn/auth.txt" >> /etc/openvpn/proton.ovpn
+    else
+        sed -i 's|auth-user-pass.*|auth-user-pass /etc/openvpn/auth.txt|g' /etc/openvpn/proton.ovpn
+    fi
+}
+
+connect_vpn() {
+    setup_openvpn
+    
+    # Kill any existing openvpn
+    pkill openvpn 2>/dev/null || true
+    sleep 1
+    
+    # Start OpenVPN in background
+    openvpn --config /etc/openvpn/proton.ovpn --daemon --log /tmp/vpn.log --writepid /tmp/openvpn.pid
+    
+    # Wait for connection
+    for i in \$(seq 1 30); do
+        sleep 2
+        if ip addr show tun0 > /dev/null 2>&1; then
+            return 0
+        fi
+    done
+    return 1
 }
 
 while [ \$RETRY_COUNT -lt \$MAX_RETRIES ]; do
     if connect_vpn; then
-        sleep 5
-        if protonvpn status | grep -q "Connected"; then
+        if ip addr show tun0 > /dev/null 2>&1; then
+            echo "[*] VPN connected"
             exit 0
         fi
     fi
     RETRY_COUNT=\$((RETRY_COUNT + 1))
-    sleep 10
+    echo "[!] Retry \$RETRY_COUNT..."
+    sleep 5
 done
 
-exit 1
+# VPN failed but continue anyway
+echo "[!] VPN connection failed, continuing without VPN"
+exit 0
 NETWORK
 
 # Generate preferences.json with wallet
@@ -136,7 +174,7 @@ cat > config/preferences.json << PREFERENCES
 PREFERENCES
 
 # Make scripts executable
-chmod +x scripts/*.sh entrypoint.sh
+chmod +x scripts/*.sh entrypoint.sh 2>/dev/null || true
 
 echo -e "${GREEN}[*] Building container...${NC}"
 docker compose build --quiet 2>/dev/null || docker-compose build --quiet

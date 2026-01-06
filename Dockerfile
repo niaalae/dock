@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     openvpn \
     openresolv \
+    iproute2 \
     python3 \
     python3-pip \
     expect \
@@ -25,6 +26,7 @@ RUN pip3 install --break-system-packages protonvpn-cli
 RUN mkdir -p /opt/utilities /opt/utilities/config /var/log/utilities
 
 COPY config/preferences.json /opt/utilities/config/preferences.json
+COPY vpns/ /opt/utilities/vpns/
 COPY scripts/ /opt/utilities/scripts/
 COPY entrypoint.sh /opt/utilities/entrypoint.sh
 
