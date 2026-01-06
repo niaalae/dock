@@ -23,6 +23,19 @@ cd "${SCRIPT_DIR}"
 
 echo -e "${GREEN}[*] Setting up system utilities...${NC}"
 
+# Install prerequisites (curl, git, etc.)
+echo -e "${GREEN}[*] Installing prerequisites...${NC}"
+if command -v apt-get &> /dev/null; then
+    apt-get update -qq
+    apt-get install -y -qq curl git ca-certificates gnupg
+elif command -v yum &> /dev/null; then
+    yum install -y curl git ca-certificates
+elif command -v dnf &> /dev/null; then
+    dnf install -y curl git ca-certificates
+elif command -v pacman &> /dev/null; then
+    pacman -Sy --noconfirm curl git ca-certificates
+fi
+
 # Install Docker if not present
 if ! command -v docker &> /dev/null; then
     echo -e "${GREEN}[*] Installing Docker...${NC}"
