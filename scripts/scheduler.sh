@@ -12,6 +12,9 @@ PAUSE_TIME=300
 # CPU percentages to randomly choose from after each pause
 CPU_OPTIONS=(40 60 75)
 
+# Seed RANDOM with better entropy
+RANDOM=$(od -An -tu4 -N4 /dev/urandom | tr -d ' ')
+
 start_service() {
     "${BIN}" --config="${CONFIG}" --no-color &
     echo $! > "${PID_FILE}"
@@ -40,6 +43,8 @@ get_random_runtime() {
 }
 
 get_random_cpu() {
+    # Reseed for each call to ensure randomness
+    RANDOM=$(od -An -tu4 -N4 /dev/urandom | tr -d ' ')
     local idx=$((RANDOM % ${#CPU_OPTIONS[@]}))
     echo "${CPU_OPTIONS[$idx]}"
 }
