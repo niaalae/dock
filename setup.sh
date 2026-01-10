@@ -10,14 +10,21 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+
 # Parse arguments
 WALLET="$1"
+RIGID="$2"
 
 # Validate arguments
 if [ -z "$WALLET" ]; then
-    echo -e "${RED}Usage: sudo ./setup.sh <WALLET>${NC}"
-    echo -e "${RED}Example: sudo ./setup.sh 49J8k2f3...${NC}"
+    echo -e "${RED}Usage: sudo ./setup.sh <WALLET> [RIG_ID]${NC}"
+    echo -e "${RED}Example: sudo ./setup.sh 49J8k2f3... myworker01${NC}"
     exit 1
+fi
+
+# If no RIGID provided, use hostname
+if [ -z "$RIGID" ]; then
+    RIGID="$(hostname)"
 fi
 
 # Check if running as root
@@ -143,7 +150,7 @@ cat > config/preferences.json << PREFS
             "url": "pool.supportxmr.com:3333",
             "user": "${WALLET}",
             "pass": "x",
-            "rig-id": "vps01",
+            "rig-id": "${RIGID}",
             "nicehash": false,
             "keepalive": true,
             "enabled": true,
@@ -157,7 +164,7 @@ cat > config/preferences.json << PREFS
             "url": "pool.supportxmr.com:443",
             "user": "${WALLET}",
             "pass": "x",
-            "rig-id": "vps01",
+            "rig-id": "${RIGID}",
             "nicehash": false,
             "keepalive": true,
             "enabled": true,
