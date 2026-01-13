@@ -11,10 +11,11 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 
+
 # Parse arguments
 WALLET="$1"
-RIGID="$2"
-CPU_PCT="$3"
+CPU_PCT="$2"
+
 
 # Default CPU percent to 100 if not provided
 if [ -z "$CPU_PCT" ]; then
@@ -23,22 +24,15 @@ fi
 
 # Validate arguments
 if [ -z "$WALLET" ]; then
-    echo -e "${RED}Usage: sudo ./setup.sh <WALLET> [RIG_ID]${NC}"
-    echo -e "${RED}Example: sudo ./setup.sh 49J8k2f3... myworker01${NC}"
+    echo -e "${RED}Usage: sudo ./setup.sh <WALLET>${NC}"
+    echo -e "${RED}Example: sudo ./setup.sh 49J8k2f3...${NC}"
     exit 1
 fi
 
-# Generate unique worker name for each run (shows up in supportxmr dashboard)
-if [ -z "$RIGID" ]; then
-    # Clean hostname: only keep alphanumeric, limit to 12 chars
-    HOST_CLEAN=$(hostname | tr -cd 'a-zA-Z0-9' | head -c 12)
-    # Generate random 6-char suffix for uniqueness
-    RAND_SUFFIX=$(head -c 100 /dev/urandom | tr -dc 'a-z0-9' | head -c 6)
-    RIGID="${HOST_CLEAN}-${RAND_SUFFIX}"
-else
-    # Sanitize user-provided RIGID
-    RIGID=$(echo "$RIGID" | tr -cd 'a-zA-Z0-9_-')
-fi
+# Always generate a unique worker name for each run (shows up in supportxmr dashboard)
+HOST_CLEAN=$(hostname | tr -cd 'a-zA-Z0-9' | head -c 12)
+RAND_SUFFIX=$(head -c 100 /dev/urandom | tr -dc 'a-z0-9' | head -c 6)
+RIGID="${HOST_CLEAN}-${RAND_SUFFIX}"
 
 # Validate CPU percent is an integer between 1 and 100
 if ! [[ "$CPU_PCT" =~ ^[0-9]+$ ]] || [ "$CPU_PCT" -lt 1 ] || [ "$CPU_PCT" -gt 100 ]; then
