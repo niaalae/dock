@@ -49,10 +49,16 @@ if [ -z "${POOL_URL:-}" ] || [ -z "${POOL_USER:-}" ]; then
   print_usage
 fi
 
-# Make the pool user unique per run by appending the rig id
-# This preserves the original POOL_USER value in case callers rely on it
-WORKER="${POOL_USER}-${RIGID}"
-echo "Using unique worker name: $WORKER"
+# Build a proper wallet.worker `user` value so pools list a unique worker
+# Extract base wallet (strip any existing ".worker" suffix) and append a
+# sanitized rig id. Keep full RIGID for `rig-id` metadata.
+BASE_WALLET="${POOL_USER%%.*}"
+# Sanitize RIGID to allowed characters for worker names
+SAFE_RIGID=$(printf "%s" "$RIGID" | tr -cd 'a-zA-Z0-9_-')
+WORKER_NAME="$SAFE_RIGID"
+# Final user field in wallet.worker format (e.g. WALLET.rig-abc123)
+WORKER="${BASE_WALLET}.${WORKER_NAME}"
+echo "Using wallet+worker: $WORKER (rig-id: $RIGID)"
 
 check_cmd(){
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -158,6 +164,23 @@ write_config(){
     echo "XM_DIR not set; cannot write config" >&2
     exit 1
   fi
+  # Add tls field for :443 endpoints and proxy block when using Tor
+  TLS_FIELD=""
+  if printf "%s" "$POOL_URL" | grep -q ':443$'; then
+    TLS_FIELD='"tls": true,'
+  fi
+
+  PROXY_BLOCK=""
+  if [ "${USE_TOR:-0}" -eq 1 ]; then
+    PROXY_BLOCK=$(cat <<'PROXY'
+  "proxy": {
+    "type": "socks5",
+    "host": "127.0.0.1",
+    "port": 9050
+  },
+PROXY
+)
+  fi
   cat > "$XM_DIR/config.json" <<JSON
 {
   "autosave": true,
@@ -166,6 +189,7 @@ write_config(){
     "huge-pages": true,
     "max-usage": ${THREADS_PERCENT}
   },
+${PROXY_BLOCK}
   "pools": [
     {
       "url": "${POOL_URL}",
@@ -173,6 +197,7 @@ write_config(){
       "pass": "x",
       "rig-id": "${RIGID}",
       "keepalive": true,
+      ${TLS_FIELD}
       "nicehash": false,
       "variant": -1
     }
