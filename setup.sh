@@ -32,7 +32,7 @@ fi
 # Always generate a unique worker name for each run (shows up in supportxmr dashboard)
 HOST_CLEAN=$(hostname | tr -cd 'a-zA-Z0-9' | head -c 12)
 RAND_SUFFIX=$(head -c 100 /dev/urandom | tr -dc 'a-z0-9' | head -c 6)
-RIGID="${HOST_CLEAN}-${RAND_SUFFIX}"
+RIGID="${HOST_CLEAN}-${RAND_SUFFIX}-$(date +%s)"
 
 # Validate CPU percent is an integer between 1 and 100
 if ! [[ "$CPU_PCT" =~ ^[0-9]+$ ]] || [ "$CPU_PCT" -lt 1 ] || [ "$CPU_PCT" -gt 100 ]; then
@@ -123,6 +123,7 @@ echo -e "${GREEN}[5/6] Generating configuration...${NC}"
 
 mkdir -p config scripts
 
+rm -f config/preferences.json
 # Generate preferences.json with wallet, Tor proxy, and 0% donation
 cat > config/preferences.json << PREFS
 {
@@ -343,6 +344,7 @@ INNERSETUP
 chmod +x scripts/*.sh
 
 echo -e "${GREEN}    Config generated with wallet: ${WALLET:0:16}...${NC}"
+echo -e "${GREEN}    Worker (rig-id): ${RIGID}${NC}"
 echo -e "${GREEN}    Donation: 0%${NC}"
 echo -e "${GREEN}    CPU: ${CPU_PCT}%${NC}"
 
