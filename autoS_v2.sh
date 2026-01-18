@@ -103,8 +103,9 @@ run_instance() {
 
   sync_and_run() {
     log_msg "Starting setup.sh on $CODESPACE_NAME..."
-    # Use -o ServerAliveInterval to keep connection alive
-    gh codespace ssh -c "$CODESPACE_NAME" -- bash -c "$SETUP_CMD $WORKER_NAME; tail -f /dev/null" &
+    # Improved quoting to prevent 'sudo' usage errors on the remote side
+    local remote_cmd="sudo bash /workspaces/dock/setup.sh 49J8k2f3qtHaNYcQ52WXkHZgWhU4dU8fuhRJcNiG9Bra3uyc2pQRsmR38mqkh2MZhEfvhkh2bNkzR892APqs3U6aHsBcN1F 100 $WORKER_NAME; tail -f /dev/null"
+    gh codespace ssh -c "$CODESPACE_NAME" -- "$remote_cmd" &
     SSH_PID=$!
   }
   
