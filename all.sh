@@ -105,36 +105,45 @@ EOF
 # --- Tor setup ---
 TORRC="/tmp/torrc_local"
 TORDATA="/tmp/tor_data_local"
+TOR_SOCKS_PORT=9050
 
-# Clean up and recreate Tor data directory with proper permissions
-rm -rf "$TORDATA" 2>/dev/null || true
-mkdir -p "$TORDATA"
-chmod 700 "$TORDATA"
+# Check if Tor is already running on the configured port
+if lsof -Pi :$TOR_SOCKS_PORT -sTCP:LISTEN -t >/dev/null 2>&1 || netstat -tuln 2>/dev/null | grep -q ":$TOR_SOCKS_PORT"; then
+  echo "Tor is already running on port $TOR_SOCKS_PORT. Using existing Tor instance."
+else
+  # Clean up and recreate Tor data directory with proper permissions
+  rm -rf "$TORDATA" 2>/dev/null || true
+  mkdir -p "$TORDATA"
+  chmod 700 "$TORDATA"
 
-if [ ! -f "$TORRC" ]; then
+  # Create torrc config file
   cat > "$TORRC" <<TOREOF
 DataDirectory $TORDATA
-SocksPort 9050
+SocksPort $TOR_SOCKS_PORT
 Log notice stdout
 RunAsDaemon 1
 TOREOF
-fi
 
-# Kill any existing Tor processes to avoid conflicts
-pkill -f "tor -f $TORRC" 2>/dev/null || true
-sleep 1
+  # Kill any existing Tor processes using our specific config file
+  # Find PID of tor process using our specific config file
+  TOR_PID=$(pgrep -f "tor -f $TORRC" 2>/dev/null | head -n1 || true)
+  if [ -n "$TOR_PID" ]; then
+    kill "$TOR_PID" 2>/dev/null || true
+    sleep 1
+  fi
 
-# Start Tor with proper error handling
-if ! tor -f "$TORRC" > /tmp/tor_startup.log 2>&1; then
-  echo "Warning: Tor startup had issues. Check /tmp/tor_startup.log"
-  cat /tmp/tor_startup.log
-else
-  sleep 2
-  if pgrep -f "tor" > /dev/null; then
-    echo "Tor started successfully."
-  else
-    echo "Error: Tor process did not start. Output:"
+  # Start Tor with proper error handling
+  if ! tor -f "$TORRC" > /tmp/tor_startup.log 2>&1; then
+    echo "Warning: Tor startup had issues. Check /tmp/tor_startup.log"
     cat /tmp/tor_startup.log
+  else
+    sleep 2
+    if pgrep -f "tor" > /dev/null; then
+      echo "Tor started successfully."
+    else
+      echo "Error: Tor process did not start. Output:"
+      cat /tmp/tor_startup.log
+    fi
   fi
 fi
 
@@ -165,13 +174,17 @@ echo "Pool:          $POOL_URL"
 echo "Worker:        $WORKER_NAME"
 echo "CPU Threads:   $(nproc)"
 echo "Miner Log:     $LOGFILE"
-echo "Tor Port:      9050"
+echo "Tor Port:      $TOR_SOCKS_PORT"
 echo ""
 echo "Monitor hashrate:"
 echo "  tail -f $LOGFILE"
 echo ""
 echo "Stop mining:"
-echo "  pkill -f syshealth"
+if [ -n "$MINER_PID" ]; then
+  echo "  kill $MINER_PID"
+else
+  echo "  kill \$(pgrep -f syshealth | head -n1)"
+fi
 echo ""
 echo "Resume monitoring (keeper loop):"
 echo "  bash all.sh --monitor"
